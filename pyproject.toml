@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "picozip"
+version = "0.1.0"
+description = "Zero-dependency multi-algorithm compression laboratory: RLE, canonical Huffman, LZSS, LZW and a DEFLATE-like LZSS+Huffman hybrid, with a .pz container, CRC check, CLI and an animated Canvas workbench."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "遥か" }]
+keywords = ["compression", "huffman", "lz77", "lzss", "lzw", "deflate",
+            "codec", "entropy", "archiver", "algorithms"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Archiving :: Compression",
+    "Topic :: Education",
+]
+dependencies = []
+
+[project.scripts]
+picozip = "picozip.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/18971181532/picozip"
+Source = "https://github.com/18971181532/picozip"
+
+[tool.setuptools]
+packages = ["picozip"]
+
+[tool.setuptools.package-data]
+picozip = ["web/*.html", "web/*.css", "web/*.js"]

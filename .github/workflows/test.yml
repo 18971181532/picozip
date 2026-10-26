@@ -1,0 +1,50 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run example
+        run: python examples/compress_demo.py
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: CLI smoke test
+        shell: bash
+        run: |
+          set -e
+          picozip --version
+          picozip codecs
+          python -c "import sys; open('smoke.txt','wb').write((b'the quick brown fox '*200))"
+          picozip compress smoke.txt -a hybrid -o smoke.pz
+          picozip inspect smoke.pz
+          picozip entropy smoke.txt
+          picozip decompress smoke.pz -o smoke.out
+          picozip bench --json > /dev/null
+          cmp smoke.txt smoke.out
+          rm -f smoke.txt smoke.pz smoke.out

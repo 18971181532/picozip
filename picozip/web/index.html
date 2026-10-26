@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PicoZip · 压缩实验室</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">▦</span>
+    <div>
+      <h1>PicoZip</h1>
+      <p>零依赖多算法压缩实验室 · RLE / Huffman / LZSS / LZW / DEFLATE-lite</p>
+    </div>
+  </div>
+  <div class="status" id="status">就绪</div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="compress">压缩对比</button>
+  <button class="tab" data-tab="huffman">Huffman 树</button>
+  <button class="tab" data-tab="lzss">LZSS 滑窗</button>
+  <button class="tab" data-tab="lzw">LZW 字典</button>
+  <button class="tab" data-tab="bench">基准</button>
+  <button class="tab" data-tab="reference">参考</button>
+</nav>
+
+<main class="panel">
+  <!-- shared input bar -->
+  <section class="inputbar">
+    <label>预设</label>
+    <select id="preset">
+      <option value="text">自然语言</option>
+      <option value="repetitive">高度重复</option>
+      <option value="runs">连续字节</option>
+      <option value="random">随机（不可压缩）</option>
+      <option value="custom">自定义</option>
+    </select>
+    <textarea id="text" rows="5" spellcheck="false"></textarea>
+  </section>
+
+  <!-- COMPRESS -->
+  <section class="tabbody active" id="tab-compress">
+    <div class="cards" id="cards"></div>
+    <h2>各算法压缩结果</h2>
+    <table class="grid" id="codec-table">
+      <thead><tr>
+        <th>算法</th><th>载荷字节</th><th>.pz 文件</th><th>压缩率</th>
+        <th>编码 ms</th><th>解码 ms</th><th>往返</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <h2>相对体积（原始 = 100%）</h2>
+    <div id="bars"></div>
+  </section>
+
+  <!-- HUFFMAN -->
+  <section class="tabbody" id="tab-huffman">
+    <div class="cards" id="huff-cards"></div>
+    <div class="canvas-wrap">
+      <canvas id="huff-canvas" height="460"></canvas>
+    </div>
+    <div class="playrow">
+      <button id="huff-play" class="btn">▶ 播放建树</button>
+      <input type="range" id="huff-slider" min="0" max="0" value="0">
+      <span id="huff-step" class="step-label">完成</span>
+    </div>
+    <h2>频率 / 码字表</h2>
+    <div class="table-scroll">
+      <table class="grid" id="huff-table">
+        <thead><tr><th>字节</th><th>频次</th><th>码长</th><th>规范码</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- LZSS -->
+  <section class="tabbody" id="tab-lzss">
+    <div class="cards" id="lzss-cards"></div>
+    <div class="canvas-wrap">
+      <canvas id="lzss-canvas" height="220"></canvas>
+    </div>
+    <div class="playrow">
+      <button id="lzss-play" class="btn">▶ 播放</button>
+      <input type="range" id="lzss-slider" min="0" max="0" value="0">
+      <span id="lzss-step" class="step-label"></span>
+    </div>
+    <h2>输出 token 序列</h2>
+    <div class="table-scroll">
+      <table class="grid" id="lzss-table">
+        <thead><tr><th>#</th><th>位置</th><th>类型</th><th>distance</th><th>length</th><th>字节</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- LZW -->
+  <section class="tabbody" id="tab-lzw">
+    <div class="cards" id="lzw-cards"></div>
+    <div class="playrow">
+      <button id="lzw-play" class="btn">▶ 播放</button>
+      <input type="range" id="lzw-slider" min="0" max="0" value="0">
+      <span id="lzw-step" class="step-label"></span>
+    </div>
+    <h2>字典增长 &amp; 输出码字</h2>
+    <div class="table-scroll">
+      <table class="grid" id="lzw-table">
+        <thead><tr><th>步</th><th>输出码</th><th>短语</th><th>新入字典</th><th>字典大小</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- BENCH -->
+  <section class="tabbody" id="tab-bench">
+    <p class="hint">对当前输入各算法压缩率（越低越好），虚线为 Shannon 零阶熵下界。</p>
+    <div class="canvas-wrap">
+      <canvas id="bench-canvas" height="420"></canvas>
+    </div>
+  </section>
+
+  <!-- REFERENCE -->
+  <section class="tabbody" id="tab-reference">
+    <h2>算法</h2>
+    <table class="grid">
+      <thead><tr><th>算法</th><th>原理</th><th>擅长</th><th>不擅长</th></tr></thead>
+      <tbody>
+        <tr><td>RLE</td><td>连续相同字节记为 (长度, 字节)</td><td>大量行程（图像、零填充）</td><td>随机、自然语言</td></tr>
+        <tr><td>Huffman</td><td>按频次构建最优前缀码，高频短码</td><td>符号分布不均</td><td>高阶重复（不利用上下文）</td></tr>
+        <tr><td>LZSS</td><td>滑窗内查找先前出现，输出 (distance,length)</td><td>文本、重复结构</td><td>短窗口外的重复、随机数据</td></tr>
+        <tr><td>LZW</td><td>动态构建短语字典，输出字典码</td><td>重复短语、表格/日志</td><td>随机数据（12 位码字反而变宽）</td></tr>
+        <tr><td>Hybrid</td><td>LZSS token 再经 Huffman 熵编码（类 DEFLATE）</td><td>通用文本/源码，综合最优</td><td>随机数据</td></tr>
+      </tbody>
+    </table>
+    <h2>.pz 容器格式（20 字节头）</h2>
+    <pre class="spec">
+偏移  长度  字段
+0      2    magic "PZ"
+2      1    版本 = 1
+3      1    算法 id
+4      8    原始长度（大端）
+12     4    原始数据 CRC-32
+16     4    载荷长度（大端）
+20    ...   算法载荷</pre>
+    <h2>为什么随机数据压缩后反而变大？</h2>
+    <p class="hint">无损压缩必须为某些输入分配更长的编码（鸽巢原理）。随机字节熵接近 8 bit/byte，
+    不含冗余，加上头与码字开销，任何算法都无法缩小它。</p>
+  </section>
+</main>
+
+<footer class="footer">PicoZip · 仅用 Python 标准库 · 本地运行，数据不离开浏览器</footer>
+<script src="app.js"></script>
+</body>
+</html>
